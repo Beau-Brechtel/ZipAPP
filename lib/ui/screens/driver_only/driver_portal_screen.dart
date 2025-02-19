@@ -239,15 +239,13 @@ class _DriverPortalState extends State<DriverPortal> {
       adw.inputTextField(
           controller: driverPasswordController,
           obscureText: true,
-          validator: Validator.validatePassword,
-          onChanged: _validatePassword),
+          validator: Validator.validatePassword),
       const SizedBox(height: 16.0),
       adw.promptTextLabel('Confirm Password'),
       adw.inputTextField(
           controller: confirmDriverPasswordController,
           obscureText: true,
-          validator: Validator.validatePassword,
-          onChanged: _validatePassword),
+          validator: Validator.validatePassword),
       const SizedBox(height: 16.0),
       adw.infoIconTextBubble(
           'Your driver password cannot be the same as your '
@@ -255,24 +253,24 @@ class _DriverPortalState extends State<DriverPortal> {
           LucideIcons.alertTriangle),
       const SizedBox(height: 32.0),
       TextButton(
-        onPressed: validDriverPasswords
-            ? () {
-                updateDriverPassword(driverPasswordController.text);
-                Navigator.pop(context);
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DriverMainScreen(),
-                  ),
-                );
-              }
-            : null,
-        style: validDriverPasswords
-            ? ZipDesign.yellowButtonStyle
-            : ZipDesign.disabledYellowButtonStyle,
-        child: const Text('Login as Driver'),
-      ),
+  onPressed: () {
+    if (_validatePassword()) {
+      updateDriverPassword(driverPasswordController.text);
+      Navigator.pop(context);
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DriverMainScreen(),
+        ),
+      );
+    }
+  },
+  style: validDriverPasswords
+      ? ZipDesign.yellowButtonStyle
+      : ZipDesign.disabledYellowButtonStyle,
+  child: const Text('Login as Driver'),
+),
       const SizedBox(height: 16.0)
     ]);
   }
@@ -297,8 +295,8 @@ class _DriverPortalState extends State<DriverPortal> {
       });
     } else {
       _showErrorAlert(
-        title: "Invalid Email",
-        content: "Please enter a valid email address.",
+        title: "Invalid Password",
+        content: "Please enter a valid password.',",
         onPressed: () {},
       );
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zipapp/constants/zip_colors.dart';
 import 'driver_earnings_details_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'bank_account_input_screen.dart';
 
 class DriverIncomeScreen extends StatefulWidget {
   const DriverIncomeScreen({super.key});
@@ -169,6 +170,25 @@ class _DriverIncomeScreenState extends State<DriverIncomeScreen> {
               detailText: 'Payment scheduled for April 7',
               detailTextStyle: detailStyle,
               isValueRightAligned: true,
+            ),
+            const Divider(),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BankAccountInputScreen(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.black, // Text color
+                backgroundColor: ZipColors.zipYellow, // Background color
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              child: const Text('Add Bank Account'),
             ),
           ],
         ),

@@ -68,10 +68,11 @@ class _AccountScreenState extends State<AccountScreen> {
                         backgroundColor: ZipColors.zipYellow,
                         foregroundColor: Colors.black,
                         child: Text(
-                          firstName[0].toUpperCase() +
-                              lastName[0].toUpperCase(),
+                          firstName.isNotEmpty && lastName.isNotEmpty
+                          ? firstName[0].toUpperCase() + lastName[0].toUpperCase()
+                          : "",
                           style: ZipDesign.pageTitleText,
-                        ),
+                      ),
                       ),
               ),
               const SizedBox(height: 16),

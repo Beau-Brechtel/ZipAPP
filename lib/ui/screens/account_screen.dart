@@ -11,6 +11,7 @@ import 'package:zipapp/ui/screens/privacy_policy_screen.dart';
 import 'package:zipapp/ui/screens/rider_only/rider_main_screen.dart';
 import 'package:zipapp/ui/screens/safety_screen.dart';
 import 'package:zipapp/ui/screens/terms_screen.dart';
+import 'package:zipapp/ui/screens/help_center_screen.dart'; 
 import 'package:zipapp/ui/widgets/underline_textbox.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -150,11 +151,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         alignment: Alignment.topLeft,
                         child: TextButton.icon(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const SafetyScreen()),
-                              );
+                              _launchUrl();
                             },
                             icon: const Icon(LucideIcons.shield),
                             label: const Text('Rules and Safety'),
@@ -223,7 +220,11 @@ class _AccountScreenState extends State<AccountScreen> {
                         alignment: Alignment.topLeft,
                         child: TextButton.icon(
                             onPressed: () {
-                              _launchUrl();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const HelpCenterScreen()),
+                              );
                             },
                             icon: const Icon(LucideIcons.badgeHelp),
                             label: const Text('Help Center'),

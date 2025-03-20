@@ -53,31 +53,7 @@ class PaymentMethodListWidget {
                     refreshKey: refreshKey,
                   );
               }).toList();
-
-          // Add Apple/Google Pay buttons
-          if (Platform.isIOS) {
-            listItems.add(
-              listItemWidgetBuilder.build(
-                context: context,
-                paymentMethodId: 'apple_pay',
-                cardType: 'Apple Pay',
-                lastFourDigits: '',
-                togglePaymentInfo: togglePaymentInfo,
-                refreshKey: refreshKey
-              )
-            );
-          } else if (Platform.isAndroid) {
-            listItems.add(
-              listItemWidgetBuilder.build(
-                context: context,
-                paymentMethodId: 'google_pay',
-                cardType: 'Google Pay',
-                lastFourDigits: '',
-                togglePaymentInfo: togglePaymentInfo,
-                refreshKey: refreshKey
-              )
-            );
-          }
+              
           // Add spacing after each item
           List<Widget> spacedListItems = [];
           for (var i = 0; i < listItems.length; i++) {

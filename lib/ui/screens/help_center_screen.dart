@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -14,6 +14,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -28,48 +29,58 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     }
   }
 
-  Future<void> _sendEmail() async {
-  final String name = _nameController.text;
-  final String email = _emailController.text;
-  final String message = _messageController.text;
+  Future<void> _sendToHelpCenter() async {
+    final String name = _nameController.text;
+    final String email = _emailController.text;
+    final String message = _messageController.text;
 
-  final Uri emailUri = Uri(
-    scheme: 'mailto',
-    path: 'info@zipgameday.com',
-    queryParameters: {
-      'subject': 'Help Center Inquiry',
-      'body': 'Name: $name\nEmail: $email\n\n$message',
-    },
-  );
+    if (name.isEmpty || email.isEmpty || message.isEmpty) {
+      _showError('Please fill in all fields.');
+      return;
+    }
 
-  print('Attempting to launch email client with URI: $emailUri');
+    setState(() {
+      _isLoading = true;
+    });
 
-  if (await canLaunchUrl(emailUri)) {
-    await launchUrl(emailUri);
-    _clearForm();
-    _showConfirmation();
-  } else {
-    print('Could not launch $emailUri');
-    _showError();
+    try {
+      final HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable('emailHelpCenter');
+      final response = await callable.call({
+        'name': name,
+        'email': email,
+        'message': message,
+      });
+
+      if (response.data['success']) {
+        _clearForm();
+        _showConfirmation('Your message has been sent successfully.');
+      } else {
+        _showError(response.data['response']);
+      }
+    } catch (e) {
+      _showError('An error occurred while sending your message. Please try again later.');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
-
 
   void _clearForm() {
     _nameController.clear();
-    _emailController.clear();
     _messageController.clear();
   }
 
-  void _showConfirmation() {
+  void _showConfirmation(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Email sent successfully!')),
+      SnackBar(content: Text(message)),
     );
   }
 
-  void _showError() {
+  void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not launch email client. Please try again later.')),
+      SnackBar(content: Text(message, style: const TextStyle(color: Colors.red))),
     );
   }
 
@@ -118,14 +129,16 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _sendEmail();
-                  }
-                },
-                child: const Text('Send'),
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          _sendToHelpCenter();
+                        }
+                      },
+                      child: const Text('Send'),
+                    ),
             ],
           ),
         ),

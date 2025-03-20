@@ -14,6 +14,7 @@ const driverClockOut = require("./driver/driverClockOut");
 const driverClockIn = require("./driver/driverClockIn");
 const driverStartBreak = require("./driver/driverStartBreak");
 const driverEndBreak = require("./driver/driverEndBreak");
+const {emailHelpCenter} = require("./emailHelpCenter");
 
 // Export the functions
 exports.getPaymentMethodDetails = getPaymentMethodDetails;
@@ -26,3 +27,4 @@ exports.driverClockIn = driverClockIn;
 exports.driverStartBreak = driverStartBreak;
 exports.driverEndBreak = driverEndBreak;
 exports.cancelPaymentIntent = cancelPaymentIntent;
+exports.emailHelpCenter = emailHelpCenter;

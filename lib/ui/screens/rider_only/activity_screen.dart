@@ -16,7 +16,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   void initState() {
     super.initState();
-    _populateRideActivityData();
+    //_populateRideActivityData();
   }
 
   @override
@@ -54,7 +54,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       },
                     ),
                   )
-                : const SizedBox(),
+                : Expanded(
+                    child: Center(
+                      child: Text(
+                        'No past rides yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  ),
           ],
         ),
       ),

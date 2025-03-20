@@ -136,10 +136,7 @@ class DefaultTipScreenState extends State<DefaultTipScreen> {
                 Text('${oldTipAmount.toStringAsFixed(2)}%',
                     style: ZipDesign.bodyText.copyWith(
                         color: TailwindColors
-                            .gray500)), // Display tipAmount in dollars or percentage
-                Text('Your average tip: \$3.40',
-                    style: ZipDesign.bodyText
-                        .copyWith(color: TailwindColors.gray500)),
+                            .gray500)),
               ],
             ),
             const SizedBox(height: 20),

@@ -16,7 +16,7 @@ class _DriverActivityScreenState extends State<DriverActivityScreen> {
   @override
   void initState() {
     super.initState();
-    _populateRideActivityData();
+    //_populateRideActivityData();
   }
 
   void _populateRideActivityData() {

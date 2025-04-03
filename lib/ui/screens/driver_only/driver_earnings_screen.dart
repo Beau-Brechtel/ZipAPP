@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:zipapp/constants/zip_colors.dart';
 import 'driver_earnings_details_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'bank_account_input_screen.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DriverIncomeScreen extends StatefulWidget {
   const DriverIncomeScreen({super.key});
@@ -14,16 +16,19 @@ class DriverIncomeScreen extends StatefulWidget {
 class _DriverIncomeScreenState extends State<DriverIncomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   double totalEarnings = 0.0;
+  String stripeAccountId = '';
+  String stripeAccountStatus = 'Unknown';
 
   @override
   void initState() {
     super.initState();
-    loadDriverEarnings();
+    loadDriverEarnings().then((_) {
+      fetchStripeAccountStatus();
+    });
   }
 
   Future<void> loadDriverEarnings() async {
-    // Replace with actual driver ID mechanism
-    String driverId = "your_driver_id";
+    String driverId = FirebaseAuth.instance.currentUser?.uid ?? ''; // Get the authenticated driver's ID
 
     try {
       DocumentSnapshot driverDoc =
@@ -31,6 +36,7 @@ class _DriverIncomeScreenState extends State<DriverIncomeScreen> {
       if (driverDoc.exists) {
         setState(() {
           totalEarnings = driverDoc.get('totalEarnings') ?? 0.0;
+          stripeAccountId = driverDoc.get('stripeAccountId') ?? ''; // Fetch Stripe account ID
         });
       }
     } catch (e) {
@@ -38,148 +44,159 @@ class _DriverIncomeScreenState extends State<DriverIncomeScreen> {
     }
   }
 
-  Future<void> updateDriverEarnings(double earnings) async {
-    // Replace with actual driver ID
-    String driverId = "your_driver_id";
+  Future<void> fetchStripeAccountStatus() async {
+    if (stripeAccountId.isEmpty) {
+      print('Stripe account not connected.');
+      setState(() {
+        stripeAccountStatus = 'Not Connected';
+      });
+      return;
+    }
 
     try {
-      await _firestore.collection('drivers').doc(driverId).update({
-        'totalEarnings': earnings,
+      final HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable('getStripeAccountStatus');
+      final response = await callable.call({
+        'stripeAccountId': stripeAccountId,
       });
-      print("Earnings updated successfully.");
+
+      setState(() {
+        stripeAccountStatus = response.data['status'] ?? 'Unknown';
+      });
     } catch (e) {
-      print("Error updating earnings: $e");
+      print('Error fetching Stripe account status: $e');
+      setState(() {
+        stripeAccountStatus = 'Error';
+      });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    const TextStyle titleStyle = TextStyle(
-      color: Colors.grey,
-      fontSize: 16,
-      fontWeight: FontWeight.bold,
-    );
+  Future<void> setupBankAccount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('User is not authenticated.');
+        return;
+      }
 
-    const TextStyle valueStyle = TextStyle(
-      color: Colors.black,
-      fontSize: 16,
-    );
+      final HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable('createDriverAccount');
+      final response = await callable.call({
+        'email': user.email, // Use the authenticated user's email
+        'refreshUrl': 'https://your-app.com/onboarding-failed',
+        'returnUrl': 'https://your-app.com/onboarding-success',
+      });
 
-    const TextStyle detailStyle = TextStyle(
-      color: Colors.grey,
-      fontSize: 14,
-    );
+      if (response.data['success']) {
+        final onboardingUrl = response.data['url'];
+        print('Onboarding URL: $onboardingUrl'); // Debugging
+        if (await canLaunchUrl(Uri.parse(onboardingUrl))) {
+          await launchUrl(Uri.parse(onboardingUrl)); // Open the Stripe onboarding URL
+        } else {
+          print('Could not launch onboarding URL.');
+        }
+      } else {
+        print('Failed to create driver account.');
+      }
+    } catch (e) {
+      print('Error setting up bank account: $e');
+    }
+  }
 
-    return Scaffold(
+@override
+Widget build(BuildContext context) {
+  const TextStyle titleStyle = TextStyle(
+    color: Colors.grey,
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+  );
+
+  const TextStyle valueStyle = TextStyle(
+    color: Colors.black,
+    fontSize: 16,
+  );
+
+  const TextStyle detailStyle = TextStyle(
+    color: Colors.grey,
+    fontSize: 14,
+  );
+
+  return Scaffold(
+    backgroundColor: Colors.white,
+    appBar: AppBar(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text(
-          'Earnings',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+      title: const Text(
+        'Earnings',
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
         ),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ListView(
-          children: <Widget>[
-            const SizedBox(height: 16),
-            _buildInfoSection(
-              'April 1 - April 7',
-              label: '\$${totalEarnings.toStringAsFixed(2)}',
-              titleStyle: titleStyle,
-              valueStyle: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold),
-              showDetailButton: true,
-            ),
-            const Divider(),
-            _buildInfoSection(
-              '',
-              label: 'Online',
-              // Label on the left
-              value: '10 h 23m',
-
-              titleStyle: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
-              valueStyle: valueStyle,
-              rightAlignedValueStyle: const TextStyle(
-                color: Colors.grey,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: Colors.black),
+    ),
+    body: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView(
+        children: <Widget>[
+          const SizedBox(height: 16),
+          _buildInfoSection(
+            'April 1 - April 7',
+            label: '\$${totalEarnings.toStringAsFixed(2)}',
+            titleStyle: titleStyle,
+            valueStyle: const TextStyle(
+                color: Colors.black,
+                fontSize: 22,
+                fontWeight: FontWeight.bold),
+            showDetailButton: true,
+          ),
+          const Divider(),
+          _buildInfoSection(
+            'Stripe Account Status',
+            label: stripeAccountStatus,
+            titleStyle: titleStyle,
+            valueStyle: valueStyle,
+          ),
+          const Divider(),
+          _buildInfoSection(
+            '',
+            label: 'Online',
+            value: '0 min',
+            titleStyle: const TextStyle(
+                color: Colors.black,
                 fontSize: 16,
-              ),
-
-              isValueRightAligned: true,
+                fontWeight: FontWeight.bold),
+            valueStyle: valueStyle,
+            rightAlignedValueStyle: const TextStyle(
+              color: Colors.grey,
+              fontSize: 16,
             ),
-            const Divider(),
-            _buildInfoSection(
-              '',
-              label: 'Trips Completed',
-              value: '25',
-              titleStyle: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
-              valueStyle: valueStyle,
-              rightAlignedValueStyle: const TextStyle(
-                color: Colors.grey,
+            isValueRightAligned: true,
+          ),
+          const Divider(),
+          _buildInfoSection(
+            '',
+            label: 'Trips Completed',
+            value: '0',
+            titleStyle: const TextStyle(
+                color: Colors.black,
                 fontSize: 16,
-              ),
-              isValueRightAligned: true,
+                fontWeight: FontWeight.bold),
+            valueStyle: valueStyle,
+            rightAlignedValueStyle: const TextStyle(
+              color: Colors.grey,
+              fontSize: 16,
             ),
-            const Divider(),
-            _buildInfoSection(
-              '',
-              label: 'Average Tip',
-              value: '\$3.40',
-              titleStyle: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
-              valueStyle: valueStyle,
-              rightAlignedValueStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-              ),
-              isValueRightAligned: true,
-            ),
-            const Divider(),
-            _buildInfoSection(
-              'Payment',
-              label: '\nAccount Balance',
-              // Label on the left
-              value: '\n\$${totalEarnings.toStringAsFixed(2)}',
-
-              titleStyle: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
-              valueStyle: valueStyle,
-              rightAlignedValueStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-              ),
-              detailText: 'Payment scheduled for April 7',
-              detailTextStyle: detailStyle,
-              isValueRightAligned: true,
-            ),
-            const Divider(),
+            isValueRightAligned: true,
+          ),
+          const Divider(),
+          // Conditionally render the button
+          if (stripeAccountStatus != 'Connected') // Show button only if not connected
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BankAccountInputScreen(),
-                  ),
-                );
+                print('Button clicked'); // Debugging
+                setupBankAccount();
               },
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.black, // Text color
@@ -188,14 +205,14 @@ class _DriverIncomeScreenState extends State<DriverIncomeScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              child: const Text('Add Bank Account'),
+              child: const Text('Set Up Bank Account'),
             ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
-
+    ),
+  );
+}
+ 
   Widget _buildInfoSection(
     String title, {
     String label = '',
